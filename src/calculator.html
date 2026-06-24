@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STB Private Event Pricing Calculator</title>
+  <title>Private Event Pricing Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
@@ -191,8 +191,13 @@
         <ErrorBoundary>
           <div className="min-h-screen flex items-center justify-center bg-gray-100">
             <div className="bg-white shadow-xl rounded-lg p-8 max-w-lg w-full">
+              <div className="flex justify-center mb-6">
+                <div className="bg-[#16243f] rounded-lg px-6 py-3">
+                  <img src="/logo-mark.png" alt="Spindletap Beverages" className="h-8 w-auto" />
+                </div>
+              </div>
               <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">STB Private Event Pricing Calculator</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Private Event Pricing Calculator</h1>
                 <button className="text-sm text-indigo-600 hover:underline" onClick={() => setShowModal(true)}>View Pricing Logic</button>
               </div>
               <p className="text-sm text-gray-500 mb-6">Enter event details and click Calculate for your quote.</p>
