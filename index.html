@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STB Private Event Pricing Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { createRoot } = ReactDOM;
+
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+      }
+      static getDerivedStateFromError() {
+        return { hasError: true };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="container mx-auto p-4 max-w-lg text-red-500">
+              <h1 className="text-2xl font-bold mb-4">Something went wrong!</h1>
+              <p>Please try again or contact support.</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    const Calculator = () => {
+      const [facility, setFacility] = useState("Entire Facility");
+      const [beverage, setBeverage] = useState("Open Bar Basic");
+      const [attendees, setAttendees] = useState(1);
+      const [attendeesOver21, setAttendeesOver21] = useState(0);
+      const [hours, setHours] = useState(1);
+      const [spindlePark, setSpindlePark] = useState("No");
+      const [isOffPeak, setIsOffPeak] = useState(false);
+      const [facilityCost, setFacilityCost] = useState(0);
+      const [beverageCost, setBeverageCost] = useState(0);
+      const [totalCost, setTotalCost] = useState(0);
+      const [pricePerHour, setPricePerHour] = useState(0);
+      const [error, setError] = useState("");
+      const [isMinimumEnforced, setIsMinimumEnforced] = useState(false);
+      const [showModal, setShowModal] = useState(false);
+      const [dryEventNotice, setDryEventNotice] = useState(false);
+
+      useEffect(() => {
+        if (facility !== "SpindleBarn") {
+          setSpindlePark("No");
+        }
+      }, [facility]);
+
+      const handleSpindleParkChange = (value) => {
+        if (facility === "SpindleBarn") {
+          setSpindlePark(value);
+        } else {
+          setSpindlePark("No");
+        }
+      };
+
+      const calculateCost = () => {
+        setError("");
+        setDryEventNotice(false);
+        if (!attendees || !hours || isNaN(attendees) || isNaN(hours) || attendeesOver21 > attendees || attendeesOver21 < 0) {
+          setError("Invalid attendees, hours, or attendees over 21");
+          return;
+        }
+        if (hours < 2) {
+          setError("Facility rentals require a minimum of 2 hours");
+          return;
+        }
+        if (facility === "Production Facility" && attendees > 50) {
+          setError("Production Facility max capacity is 50");
+          return;
+        }
+        if (facility === "Beer Garden" && attendees > 50) {
+          setError("Beer Garden max capacity is 50");
+          return;
+        }
+        if (facility === "SpindleBarn" && attendees > 200) {
+          setError("SpindleBarn max capacity is 200");
+          return;
+        }
+        if (facility === "Taproom" && attendees > 200) {
+          setError("Taproom max capacity is 200");
+          return;
+        }
+
+        let facilityCostCalc = 0;
+        let beverageCostCalc = 0;
+
+        const facilityTiers = {
+          "Entire Facility": [{ max: 50, rate: 15 }, { max: 100, rate: 12 }, { max: 150, rate: 10 }, { max: 200, rate: 9 }, { max: 300, rate: 8 }, { max: 400, rate: 7 }, { max: Infinity, rate: 5 }],
+          "SpindleBarn": [{ max: 50, rate: 10 }, { max: 100, rate: 9 }, { max: 150, rate: 7 }, { max: 200, rate: 5 }],
+          "Taproom": [{ max: 50, rate: 10 }, { max: 100, rate: 9 }, { max: 150, rate: 7 }, { max: 200, rate: 5 }],
+          "Production Facility": [{ max: 50, rate: 7 }],
+          "Beer Garden": [{ max: 50, rate: 7 }]
+        };
+        const spindleParkTiers = [
+          { min: 1, max: 50, rate: 4 },
+          { min: 51, max: 100, rate: 3 },
+          { min: 101, max: 150, rate: 2 },
+          { min: 151, max: 200, rate: 1 }
+        ];
+        const beverageRates = {
+          "Open Bar Premium": { rate: 9 },
+          "Open Bar Basic": { rate: 6 },
+          "Cash Bar": { rate: 4 },
+          "Dry Event": { rate: 0 }
+        };
+
+        const tiers = facilityTiers[facility];
+        if (!tiers) {
+          setError("No tiers found for selected facility");
+          return;
+        }
+        let remaining = attendees;
+        let start = 1;
+        for (let tier of tiers) {
+          if (remaining <= 0) break;
+          const end = Math.min(tier.max, attendees);
+          const segment = Math.min(remaining, end - start + 1);
+          if (segment > 0) facilityCostCalc += segment * hours * tier.rate;
+          remaining -= segment;
+          start = end + 1;
+        }
+
+        if (facility === "SpindleBarn" && spindlePark === "Yes") {
+          let spindleParkCost = 0;
+          let remainingAttendees = attendees;
+          for (let tier of spindleParkTiers) {
+            if (remainingAttendees <= 0) break;
+            const segment = Math.min(remainingAttendees, tier.max - (tier.min - 1));
+            if (segment > 0) {
+              spindleParkCost += segment * hours * tier.rate;
+              remainingAttendees -= segment;
+            }
+          }
+          facilityCostCalc += spindleParkCost;
+        }
+
+        if (beverage === "Open Bar Premium" || beverage === "Open Bar Basic" || beverage === "Cash Bar") {
+          const effectiveHours = Math.max(hours, 2);
+          beverageCostCalc = attendeesOver21 * effectiveHours * beverageRates[beverage].rate;
+        } else if (beverage === "Dry Event") {
+          beverageCostCalc = 0;
+          setDryEventNotice(true);
+        }
+
+        const calculatedTotal = facilityCostCalc + beverageCostCalc;
+        const minCost = {
+          "Entire Facility": 5000,
+          "SpindleBarn": 2000,
+          "Production Facility": 750,
+          "Taproom": 2000,
+          "Beer Garden": 750
+        }[facility];
+        const adjustedMinCost = isOffPeak ? minCost * 0.9 : minCost;
+        const discount = isOffPeak ? facilityCostCalc * 0.1 : 0;
+        const totalCostWithDiscount = calculatedTotal - discount;
+
+        if (totalCostWithDiscount < adjustedMinCost) {
+          setFacilityCost(facilityCostCalc);
+          setBeverageCost(beverageCostCalc);
+          setTotalCost(adjustedMinCost);
+          setIsMinimumEnforced(true);
+          const discountedFacilityCost = facilityCostCalc - discount;
+          setPricePerHour(beverage === "Cash Bar" ? (discountedFacilityCost / (attendees * hours) || 0) : (adjustedMinCost / (attendees * hours) || 0));
+        } else {
+          setFacilityCost(facilityCostCalc);
+          setBeverageCost(beverageCostCalc);
+          setTotalCost(totalCostWithDiscount);
+          setIsMinimumEnforced(false);
+          const discountedFacilityCost = facilityCostCalc - discount;
+          setPricePerHour(beverage === "Cash Bar" ? (discountedFacilityCost / (attendees * hours) || 0) : (totalCostWithDiscount / (attendees * hours) || 0));
+        }
+        setError("");
+      };
+
+      return (
+        <ErrorBoundary>
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="bg-white shadow-xl rounded-lg p-8 max-w-lg w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold text-gray-900">STB Private Event Pricing Calculator</h1>
+                <button className="text-sm text-indigo-600 hover:underline" onClick={() => setShowModal(true)}>View Pricing Logic</button>
+              </div>
+              <p className="text-sm text-gray-500 mb-6">Enter event details and click Calculate for your quote.</p>
+              {error && <p className="text-red-600 mb-6 font-medium">{error}</p>}
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="facility" className="block text-sm font-medium text-gray-700 mb-1">Facility Type:</label>
+                  <select id="facility" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value={facility} onChange={(e) => setFacility(e.target.value)}>
+                    <option value="Entire Facility">Entire Facility</option>
+                    <option value="SpindleBarn">SpindleBarn</option>
+                    <option value="Production Facility">Production Facility</option>
+                    <option value="Taproom">Taproom</option>
+                    <option value="Beer Garden">Beer Garden</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="beverage" className="block text-sm font-medium text-gray-700 mb-1">Beverage Package:</label>
+                  <select id="beverage" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value={beverage} onChange={(e) => setBeverage(e.target.value)}>
+                    <option value="Open Bar Premium">Open Bar Premium</option>
+                    <option value="Open Bar Basic">Open Bar Basic</option>
+                    <option value="Cash Bar">Cash Bar</option>
+                    <option value="Dry Event">Dry Event</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="attendees" className="block text-sm font-medium text-gray-700 mb-1">Number of Attendees:</label>
+                  <input id="attendees" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="number" value={attendees} onChange={(e) => setAttendees(parseInt(e.target.value))} placeholder="Number of Attendees" />
+                </div>
+                <div>
+                  <label htmlFor="attendeesOver21" className="block text-sm font-medium text-gray-700 mb-1">Attendees over 21:</label>
+                  <input id="attendeesOver21" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="number" value={attendeesOver21} onChange={(e) => setAttendeesOver21(parseInt(e.target.value))} placeholder="Attendees over 21" />
+                </div>
+                <div>
+                  <label htmlFor="hours" className="block text-sm font-medium text-gray-700 mb-1">Event Hours:</label>
+                  <input id="hours" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" type="number" value={hours} onChange={(e) => setHours(parseFloat(e.target.value))} placeholder="Event Hours" />
+                </div>
+                <div>
+                  <label htmlFor="spindlePark" className="block text-sm font-medium text-gray-700 mb-1">SpindlePark Add-On:</label>
+                  <select id="spindlePark" disabled={facility !== "SpindleBarn"} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50" value={spindlePark} onChange={(e) => handleSpindleParkChange(e.target.value)}>
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="offPeak"
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    checked={isOffPeak}
+                    onChange={(e) => setIsOffPeak(e.target.checked)}
+                  />
+                  <label htmlFor="offPeak" className="ml-2 text-sm text-gray-700">Off-peak Hours</label>
+                </div>
+                <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 ease-in-out" onClick={calculateCost}>Calculate</button>
+                {totalCost > 0 && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-md space-y-2">
+                    {dryEventNotice && (
+                      <p className="text-amber-600 text-sm font-medium">Note: Dry Event beverage package requires prior approval.</p>
+                    )}
+                    <p className="text-sm text-gray-900">Facility Cost: ${facilityCost.toFixed(2)}</p>
+                    <p className="text-sm text-gray-900">Beverage Cost: ${beverageCost.toFixed(2)} {beverage === "Cash Bar" ? "(Beverage Minimum: Difference paid by host)" : ""}</p>
+                    {isOffPeak && <p className="text-sm text-gray-900">10% Facility Discount: -${(facilityCost * 0.1).toFixed(2)}</p>}
+                    <p className="text-sm text-gray-900"><strong>Total Cost: ${totalCost.toFixed(2)}</strong> {isMinimumEnforced ? "(Default Event Minimum)" : ""}</p>
+                    <p className="text-sm text-gray-900"><strong>Price per Person per Hour: ${pricePerHour.toFixed(2)}</strong> {beverage === "Cash Bar" ? "(Facility cost only)" : ""}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          {showModal && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto relative">
+                <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onClick={() => setShowModal(false)}>×</button>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Pricing Logic Overview</h2>
+                <p className="text-sm text-gray-600 mb-6">Reference guide for salespeople on how costs are calculated.</p>
+                <div className="space-y-6">
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Tier Calculation Logic</h3>
+                    <p className="text-sm text-gray-700 mb-2">Facility costs use a progressive (marginal) structure like tax brackets: Group divided into chunks, each charged at its tier rate. Lower chunks pay higher rates; higher chunks get discounts.</p>
+                    <p className="text-sm text-gray-700 mb-2 font-medium">Key Principles:</p>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1 mb-2">
+                      <li>Tiers per facility (e.g., Entire Facility for larger groups; Beer Garden has one).</li>
+                      <li>Steps: Apply first tier to initial chunk (1-50), next to remainder (51-100), etc. Multiply chunk size by hours and rate, then sum.</li>
+                      <li>No retroactive: Only excess attendees get lower rate.</li>
+                      <li>Caps: Error if over max capacity.</li>
+                    </ul>
+                    <p className="text-sm text-gray-700 mb-2 font-medium">Example: Entire Facility, 120 Attendees, 3 Hours</p>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1 mb-2">
+                      <li>Tiers: 1-50: $15; 51-100: $12; 101-150: $10.</li>
+                      <li>Chunk 1 (1-50): 50 x 3 x $15 = $2,250</li>
+                      <li>Chunk 2 (51-100): 50 x 3 x $12 = $1,800</li>
+                      <li>Chunk 3 (101-120): 20 x 3 x $10 = $600</li>
+                      <li>Total: $4,650 (Avg: ~$12.92/person/hour, blended).</li>
+                    </ul>
+                    <p className="text-sm text-gray-700">Rewards larger groups with marginal discounts. SpindlePark similar if selected.</p>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Facility Rental Costs (per person per hour)</h3>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-2">
+                      <li><strong>Entire Facility:</strong>
+                        <ul className="list-disc pl-5">
+                          <li>1-50: $15</li>
+                          <li>51-100: $12</li>
+                          <li>101-150: $10</li>
+                          <li>151-200: $9</li>
+                          <li>201-300: $8</li>
+                          <li>301-400: $7</li>
+                          <li>401+: $5</li>
+                        </ul>
+                      </li>
+                      <li><strong>SpindleBarn (max 200):</strong>
+                        <ul className="list-disc pl-5">
+                          <li>1-50: $10</li>
+                          <li>51-100: $9</li>
+                          <li>101-150: $7</li>
+                          <li>151-200: $5</li>
+                        </ul>
+                      </li>
+                      <li><strong>Taproom (max 200):</strong> Same as SpindleBarn</li>
+                      <li><strong>Production Facility (max 50):</strong> 1-50: $7</li>
+                      <li><strong>Beer Garden (max 50):</strong> 1-50: $7</li>
+                    </ul>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">SpindlePark Add-On (for SpindleBarn only, per person per hour)</h3>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                      <li>1-50: $4</li>
+                      <li>51-100: $3</li>
+                      <li>101-150: $2</li>
+                      <li>151-200: $1</li>
+                    </ul>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Beverage Packages (per person over 21 per hour, min 2 hours)</h3>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                      <li>Open Bar Premium: $9</li>
+                      <li>Open Bar Basic: $6</li>
+                      <li>Cash Bar: $4 (minimum; difference paid by host)</li>
+                      <li>Dry Event: $0 (requires approval)</li>
+                    </ul>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Minimum Event Costs</h3>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                      <li>Entire Facility: $5000</li>
+                      <li>SpindleBarn: $2000</li>
+                      <li>Taproom: $2000</li>
+                      <li>Production Facility: $750</li>
+                      <li>Beer Garden: $750</li>
+                    </ul>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Off-Peak Discounts</h3>
+                    <p className="text-sm text-gray-700">10% off facility cost and minimum cost.</p>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Calculation Notes</h3>
+                    <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                      <li>Total Cost = Max(Calculated Facility + Beverage - Discount, Adjusted Minimum)</li>
+                      <li>Price per Person per Hour = Total / (Attendees x Hours); For Cash Bar, based on facility cost only.</li>
+                      <li>Minimum 2 hours for all rentals.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </ErrorBoundary>
+      );
+    };
+
+    createRoot(document.getElementById("root")).render(<Calculator />);
+  </script>
+</body>
+</html>
