@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Private Event Pricing Calculator</title>
+  <title>Private Event Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
@@ -198,11 +201,14 @@
                   style={{ width: '270px', maxWidth: '80%', height: '84px', backgroundImage: 'url(/logo-navy.png)', backgroundSize: '100% auto', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
                 ></div>
               </div>
-              <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Private Event Pricing Calculator</h1>
-                <button className="text-sm text-indigo-600 hover:underline" onClick={() => setShowModal(true)}>View Pricing Logic</button>
+              <h1
+                className="text-2xl font-bold uppercase mb-2 whitespace-nowrap"
+                style={{ fontFamily: "'Montserrat', sans-serif", color: '#16243f', letterSpacing: '0.04em' }}
+              >Private Event Calculator</h1>
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-sm text-gray-500">Enter event details and click Calculate for your quote.</p>
+                <button className="text-sm text-indigo-600 hover:underline whitespace-nowrap ml-4" onClick={() => setShowModal(true)}>View Pricing Logic</button>
               </div>
-              <p className="text-sm text-gray-500 mb-6">Enter event details and click Calculate for your quote.</p>
               {error && <p className="text-red-600 mb-6 font-medium">{error}</p>}
               <div className="space-y-6">
                 <div>
