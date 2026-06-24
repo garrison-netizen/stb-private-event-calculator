@@ -13,10 +13,12 @@
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
     .card {
-      background: #fff; border-radius: 12px; padding: 40px 32px;
+      background: #fff; border-radius: 12px; overflow: hidden;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 380px; width: 100%; text-align: center;
     }
-    .card .logo { display: block; width: 220px; max-width: 76%; height: auto; margin: 0 auto 12px; }
+    .card-header { background: #16356d; padding: 30px 24px 26px; }
+    .card-header .logo { display: block; width: 230px; max-width: 78%; height: auto; margin: 0 auto; }
+    .card-body { padding: 32px 32px 36px; }
     .card h1 { font-size: 20px; color: #2e7d32; margin-bottom: 8px; }
     .card p { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
     #btn { display: flex; justify-content: center; min-height: 44px; }
@@ -27,12 +29,16 @@
 </head>
 <body>
   <div class="card">
-    <img class="logo" src="/logo.png" alt="Spindletap Beverages">
-    <h1>STB Private Event Calculator</h1>
-    <p>Sign in with your authorized Google account to access the pricing tool.</p>
-    <div id="btn"></div>
-    <div id="msg" class="msg"></div>
-    <div class="footer">Spindletap Beverages &middot; Internal Use Only</div>
+    <div class="card-header">
+      <img class="logo" src="/logo.png" alt="Spindletap Beverages">
+    </div>
+    <div class="card-body">
+      <h1>STB Private Event Calculator</h1>
+      <p>Sign in with your authorized Google account to access the pricing tool.</p>
+      <div id="btn"></div>
+      <div id="msg" class="msg"></div>
+      <div class="footer">Spindletap Beverages &middot; Internal Use Only</div>
+    </div>
   </div>
 
   <script>
