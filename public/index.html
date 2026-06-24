@@ -27,7 +27,7 @@
 <body>
   <div class="card">
     <h1>STB Private Event Calculator</h1>
-    <p>Sign in with your Spindletap account to access the pricing tool.</p>
+    <p>Sign in with your authorized Google account to access the pricing tool.</p>
     <div id="btn"></div>
     <div id="msg" class="msg"></div>
     <div class="footer">Spindletap Beverages &middot; Internal Use Only</div>
@@ -47,7 +47,7 @@
       var msg = document.getElementById("msg");
       if (params.has("denied")) {
         msg.className = "msg denied";
-        msg.textContent = "That account isn't a Spindletap account. Use your @spindletap.com login.";
+        msg.textContent = "That account isn't authorized for this tool. Contact Garrison to be added.";
       } else if (params.has("expired")) {
         msg.className = "msg denied";
         msg.textContent = "Your session expired. Please sign in again.";
@@ -67,8 +67,7 @@
           }
           google.accounts.id.initialize({
             client_id: cfg.clientId,
-            callback: handleCredential,
-            hd: "spindletap.com"
+            callback: handleCredential
           });
           google.accounts.id.renderButton(
             document.getElementById("btn"),

@@ -1,13 +1,13 @@
 // Authenticated gate for the Private Event Pricing Calculator.
 // Serves the calculator HTML only after verifying a Google sign-in
-// from an allowed company domain. The pricing markup lives in
-// calc-data.js (bundled, not publicly served), so nothing is sent
-// to the browser until the caller is authenticated.
+// AND confirming the signed-in email is on the Notion authorized-users
+// list. The pricing markup lives in calc-data.js (bundled, not publicly
+// served), so nothing is sent to the browser until the caller is allowed.
 const { OAuth2Client } = require('google-auth-library');
+const { fetchAllowedEmails } = require('./allowlist.js');
 const calcB64 = require('./calc-data.js');
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const ALLOWED_DOMAIN = (process.env.ALLOWED_DOMAIN || 'spindletap.com').toLowerCase();
 const client = new OAuth2Client(CLIENT_ID);
 
 function parseCookies(req) {
@@ -36,12 +36,12 @@ module.exports = async (req, res) => {
     return res.end();
   }
 
+  let email;
   try {
     const ticket = await client.verifyIdToken({ idToken: token, audience: CLIENT_ID });
     const payload = ticket.getPayload();
-    const email = (payload.email || '').toLowerCase();
-    const domainOk = payload.hd === ALLOWED_DOMAIN || email.endsWith('@' + ALLOWED_DOMAIN);
-    if (!payload.email_verified || !domainOk) {
+    email = (payload.email || '').toLowerCase();
+    if (!payload.email_verified || !email) {
       res.writeHead(302, { Location: '/?denied=1' });
       return res.end();
     }
@@ -49,6 +49,20 @@ module.exports = async (req, res) => {
     // Token missing/expired/invalid -> back to sign-in.
     res.writeHead(302, { Location: '/?expired=1' });
     return res.end();
+  }
+
+  // Check the email against the live Notion authorized-users list.
+  // Fail closed: if the list can't be read, deny rather than expose pricing.
+  try {
+    const allowed = await fetchAllowedEmails();
+    if (!allowed.has(email)) {
+      res.writeHead(302, { Location: '/?denied=1' });
+      return res.end();
+    }
+  } catch (err) {
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'text/plain');
+    return res.end('Authorization list is temporarily unavailable. Please try again shortly.');
   }
 
   const html = Buffer.from(calcB64, 'base64').toString('utf8');
