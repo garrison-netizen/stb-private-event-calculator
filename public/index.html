@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STB Private Event Calculator</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .card {
+      background: #fff; border-radius: 12px; padding: 40px 32px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 380px; width: 100%; text-align: center;
+    }
+    .card h1 { font-size: 20px; color: #2e7d32; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
+    #btn { display: flex; justify-content: center; min-height: 44px; }
+    .msg { font-size: 13px; margin-top: 18px; padding: 10px; border-radius: 8px; display: none; }
+    .msg.denied { display: block; background: #fdecea; color: #c0392b; }
+    .footer { margin-top: 28px; font-size: 11px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>STB Private Event Calculator</h1>
+    <p>Sign in with your Spindletap account to access the pricing tool.</p>
+    <div id="btn"></div>
+    <div id="msg" class="msg"></div>
+    <div class="footer">Spindletap Beverages &middot; Internal Use Only</div>
+  </div>
+
+  <script>
+    function handleCredential(response) {
+      // Store the Google ID token in a short-lived cookie; the server
+      // re-verifies it on every request to /app.
+      document.cookie = "gauth=" + response.credential +
+        "; path=/; max-age=3600; secure; samesite=strict";
+      window.location = "/app";
+    }
+
+    function showMessage() {
+      var params = new URLSearchParams(window.location.search);
+      var msg = document.getElementById("msg");
+      if (params.has("denied")) {
+        msg.className = "msg denied";
+        msg.textContent = "That account isn't a Spindletap account. Use your @spindletap.com login.";
+      } else if (params.has("expired")) {
+        msg.className = "msg denied";
+        msg.textContent = "Your session expired. Please sign in again.";
+      }
+    }
+
+    window.addEventListener("load", function () {
+      showMessage();
+      fetch("/api/config")
+        .then(function (r) { return r.json(); })
+        .then(function (cfg) {
+          if (!cfg.clientId) {
+            var msg = document.getElementById("msg");
+            msg.className = "msg denied";
+            msg.textContent = "Sign-in is not configured yet. Contact Garrison.";
+            return;
+          }
+          google.accounts.id.initialize({
+            client_id: cfg.clientId,
+            callback: handleCredential,
+            hd: "spindletap.com"
+          });
+          google.accounts.id.renderButton(
+            document.getElementById("btn"),
+            { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" }
+          );
+        });
+    });
+  </script>
+</body>
+</html>

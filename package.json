@@ -1,0 +1,9 @@
+{
+  "name": "stb-private-event-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "STB Private Event Pricing Calculator, gated behind Google sign-in (@spindletap.com).",
+  "dependencies": {
+    "google-auth-library": "^9.14.1"
+  }
+}
