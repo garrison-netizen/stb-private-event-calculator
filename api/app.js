@@ -56,7 +56,10 @@ module.exports = async (req, res) => {
   try {
     const allowed = await fetchAllowedEmails();
     if (!allowed.has(email)) {
-      res.writeHead(302, { Location: '/?denied=1' });
+      // Pass the signed-in email back so the sign-in page can show WHICH
+      // account was rejected (the #1 source of confusion: people get signed
+      // in as a personal Gmail and can't tell).
+      res.writeHead(302, { Location: '/?denied=1&as=' + encodeURIComponent(email) });
       return res.end();
     }
   } catch (err) {

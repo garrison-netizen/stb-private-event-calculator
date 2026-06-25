@@ -42,12 +42,24 @@
       window.location = "/app";
     }
 
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
     function showMessage() {
       var params = new URLSearchParams(window.location.search);
       var deny = document.getElementById("msg-deny");
       var def = document.getElementById("msg-default");
       if (params.has("denied")) {
-        deny.innerHTML = "That account isn't authorized for this tool. Contact <strong>Garrison</strong> to be added.";
+        var who = params.get("as");
+        deny.innerHTML =
+          (who
+            ? "You're signed in as <strong>" + escapeHtml(who) + "</strong>, which isn't on the access list. "
+            : "That account isn't on the access list. ") +
+          "Sign in with the Google account Garrison authorized — tap the button and choose " +
+          "<strong>“Use another account”</strong> if you need to switch — or contact <strong>Garrison</strong> to be added.";
         deny.style.display = "block"; def.style.display = "none";
       } else if (params.has("expired")) {
         deny.textContent = "Your session expired. Please sign in again.";
@@ -69,14 +81,21 @@
           google.accounts.id.initialize({
             client_id: cfg.clientId,
             callback: handleCredential,
-            auto_select: true
+            // Never silently reuse the browser's default Google account — that
+            // signed people in as the wrong account (e.g. a personal Gmail not
+            // on the list) with no way to choose. Make them pick deliberately.
+            auto_select: false
           });
           google.accounts.id.renderButton(
             document.getElementById("btn"),
             { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" }
           );
-          // One Tap: returning staff with an active Google session sign in with no click.
-          google.accounts.id.prompt();
+          // Show One Tap only on a clean first visit. After a denial/expiry we
+          // want the account chooser (the button), not a silent re-prompt.
+          var p = new URLSearchParams(window.location.search);
+          if (!p.has("denied") && !p.has("expired")) {
+            google.accounts.id.prompt();
+          }
         });
     });
   </script>
